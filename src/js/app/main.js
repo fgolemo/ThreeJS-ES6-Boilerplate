@@ -40,7 +40,7 @@ export default class Main {
 		document.body.appendChild(this.renderer.domElement)
 
 		this.addLights()
-		// this.addHelpers()
+		this.addHelpers()
 
 		window.addEventListener('resize', () => {
 			let width = window.innerWidth
@@ -91,8 +91,8 @@ export default class Main {
 
 	addHelpers() {
 		if (Config.isDev) {
-			let axisHelper = new THREE.AxesHelper(50)
-			this.scene.add(axisHelper)
+			this.axisHelper = new THREE.AxesHelper(50)
+			this.scene.add(this.axisHelper)
 		}
 	}
 
@@ -190,11 +190,16 @@ export default class Main {
 		rot2.add(cam2_.camera.rotation, 'z', -2, 2).step(0.2).listen()
 		rot2.open()
 		cam2.open()
+
+		this.gui_models = gui.addFolder("Models")
+		this.gui_models.add(this.axisHelper, "visible").name("axes")
+		this.gui_models.open()
 	}
 
 	loadModel() {
 		var loader = new THREE.GLTFLoader()
 		let scene_ = this.scene
+		let self = this;
 		loader.load('assets/bunn.glb', function (gltf) {
 			var mesh = gltf.scene.children[0]
 			mesh.geometry.center()
@@ -212,10 +217,33 @@ export default class Main {
 			simplified.material.flatShading = true
 			var count = Math.floor(simplified.geometry.attributes.position.count * 0.875) // number of vertices to remove
 			simplified.geometry = modifier.modify(simplified.geometry, count)
-			scene_.add(simplified)
+
+			self.bunn_mesh = simplified
+			scene_.add(self.bunn_mesh)
+			self.bunn_mesh.visible = Config.visibility.mesh
+			self.gui_models.add(self.bunn_mesh, "visible").name("mesh")
 
 		}, undefined, function (error) {
 			console.error(error)
 		})
+
+		loader.load('assets/bunn-voxel.glb', function (gltf) {
+			var mesh = gltf.scene.children[0]
+
+			mesh.geometry.center()
+			mesh.scale.set(.029, .029, .029)
+			mesh.rotateX(Math.PI*3/2)
+			// mesh.position.x = 2
+			mesh.material = new MeshLambertMaterial({transparent: true, opacity: 0.5, color: new THREE.Color(0x00ff00)})
+
+			self.bunn_voxel = mesh
+			scene_.add(self.bunn_voxel)
+			self.bunn_voxel.visible = Config.visibility.voxel
+			self.gui_models.add(self.bunn_voxel, "visible").name("voxel")
+
+		}, undefined, function (error) {
+			console.error(error)
+		})
+
 	}
 }
