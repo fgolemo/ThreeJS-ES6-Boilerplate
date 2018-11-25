@@ -24,6 +24,7 @@
     "webpack-dev-server": "^2.11.1"
   },
   "dependencies": {
+    "dat.gui": "^0.7.3",
     "es6-promise": "^4.2.4",
     "fsevents": "^2.0.1",
     "orbit-controls-es6": "^2.0.0",
