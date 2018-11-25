@@ -1,9 +1,9 @@
-import { BoxGeometry, MeshBasicMaterial, Mesh } from 'three'
+import {BoxGeometry, Mesh, MeshPhongMaterial} from 'three'
 
 export default class Cube {
   constructor(){
     let geometry = new BoxGeometry(1, 1, 1)
-    let material = new MeshBasicMaterial({ color: 0x00ff00 })
+    let material = new MeshPhongMaterial({ color: 0x999900 })
 
     this.mesh = new Mesh(geometry, material)
   }

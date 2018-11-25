@@ -25,6 +25,8 @@
   },
   "dependencies": {
     "es6-promise": "^4.2.4",
+    "fsevents": "^2.0.1",
+    "orbit-controls-es6": "^2.0.0",
     "stats.js": "^0.17.0",
     "three": "^0.89.0"
   }

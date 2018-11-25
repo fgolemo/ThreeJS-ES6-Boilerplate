@@ -3,8 +3,8 @@ const path = require('path')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
 const CopyWebpackPlugin = require('copy-webpack-plugin')
 const CleanWebpackPlugin = require('clean-webpack-plugin')
-const PUBLIC = __dirname + "/dist"
-const TITLE = "Example Title"
+const PUBLIC = __dirname + '/dist'
+const TITLE = 'Example Title'
 
 
 const plugins = [
@@ -19,12 +19,12 @@ const plugins = [
 		template: 'src/index.html'
 	}),
 	//copy the assets (with no css compilation)
-  new CopyWebpackPlugin([
-    { from:'src/assets', to:'assets' },
-    { from:'src/css', to:'css' }
-  ]),
-  // clean the output folder
-  new CleanWebpackPlugin(['dist']),
+	new CopyWebpackPlugin([
+		{from: 'src/assets', to: 'assets'},
+		{from: 'src/css', to: 'css'}
+	]),
+	// clean the output folder
+	new CleanWebpackPlugin(['dist']),
 ]
 
 module.exports = {
@@ -56,7 +56,7 @@ module.exports = {
 				query: {
 					compact: true,
 					presets: [
-						['env', { modules: false }]
+						['env', {modules: false}]
 					]
 				}
 			}
