@@ -5,19 +5,21 @@ import Stats from 'stats.js'
 import * as dat from 'dat.gui'
 import Config from '../data/config'
 
-import Cube from './blocks/cube'
-
 import OrbitControls from 'orbit-controls-es6'
 import {MeshBasicMaterial} from 'three'
-import {MeshPhongMaterial} from 'three'
 import {MeshLambertMaterial} from 'three'
+import {Vector2} from 'three'
+
+const SURF_RES = 14 // surfel resolution
 
 export default class Main {
 	constructor() {
+		this.ray = new THREE.Raycaster()
+
 		this.scene = new THREE.Scene()
 		this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
 
-		this.camera2 = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
+		this.camera2 = new THREE.PerspectiveCamera(75, 800 / 600, 0.1, 1000)
 		this.cam2helper = new THREE.CameraHelper(this.camera2)
 		this.scene.add(this.cam2helper)
 
@@ -25,10 +27,17 @@ export default class Main {
 		this.renderer.setClearColor(0xffffff, 0)
 
 		this.renderer.setSize(window.innerWidth, window.innerHeight)
+		this.renderer.sortObjects = false
+		this.surfels = []
 
 		this.camera.position.z = 1
 		this.camera.position.x = 1
 		this.camera.position.y = 1
+
+		this.camera2.position.x = -0.2
+		this.camera2.position.y = .1
+		this.camera2.position.z = 1
+		this.camera2.updateMatrixWorld(true)
 
 		this.controls = new OrbitControls(this.camera, this.renderer.domElement)
 		this.controls.enabled = true
@@ -52,18 +61,11 @@ export default class Main {
 			this.camera.updateProjectionMatrix()
 		})
 
-		this.loadAll()
-
 		this.addStats()
 		this.loadModel()
 		this.addGUI()
 		// let's render
 		this.render()
-	}
-
-	loadAll() {
-		// let cube = new Cube()
-		// this.scene.add(cube.mesh)
 	}
 
 	render() {
@@ -93,6 +95,7 @@ export default class Main {
 		if (Config.isDev) {
 			this.axisHelper = new THREE.AxesHelper(50)
 			this.scene.add(this.axisHelper)
+			this.axisHelper.visible = Config.visibility.axes
 		}
 	}
 
@@ -126,89 +129,106 @@ export default class Main {
 		}
 	}
 
-	updateCam(cam) {
-		return function () {
-			// cam.camera.updateProjectionMatrix()
-			cam.camera.updateMatrixWorld(true)
-			// cam.update()
-		}
-	}
-
 	addGUI() {
 		let cam_ = this.camera
 		let cam2_ = this.cam2helper
 		let options = {
 			face: this.camFace(cam_),
 			center: this.camCenter(cam_),
-			update: this.updateCam(cam2_)
+			// update: this.updateCam(cam2_)
 		}
 
 		var gui = new dat.GUI()
 
-		// var cam = gui.addFolder('Camera');
-		// cam.add(options.camera, 'speed', 0, 0.0010).listen();
-		// cam.add(camera.position, 'y', 0, 100).listen();
-		// cam.open();
-		//
-		// var velocity = gui.addFolder('Velocity');
-		// velocity.add(options, 'velx', -0.2, 0.2).name('X').listen();
-		// velocity.add(options, 'vely', -0.2, 0.2).name('Y').listen();
-		// velocity.open();
-		//
-		// var box = gui.addFolder('Cube');
-		// box.add(cube.scale, 'x', 0, 3).name('Width').listen();
-		// box.add(cube.scale, 'y', 0, 3).name('Height').listen();
-		// box.add(cube.scale, 'z', 0, 3).name('Length').listen();
-		// box.add(cube.material, 'wireframe').listen();
-		// box.open();
-
-		var cam = gui.addFolder('Cam (Main)')
-		cam.add(options, 'face')
-		cam.add(options, 'center')
-		var pos = cam.addFolder('Pos')
-		pos.add(cam_.position, 'x', -1, 1).listen()
-		pos.add(cam_.position, 'y', -1, 1).listen()
-		pos.add(cam_.position, 'z', -1, 1).listen()
-		pos.open()
-		var rot = cam.addFolder('Rot')
-		rot.add(cam_.rotation, 'x', -1, 1).listen()
-		rot.add(cam_.rotation, 'y', -1, 1).listen()
-		rot.add(cam_.rotation, 'z', -1, 1).listen()
-		rot.open()
-		cam.open()
+		// var cam = gui.addFolder('Cam (Main)')
+		// cam.add(options, 'face')
+		// cam.add(options, 'center')
+		// var pos = cam.addFolder('Pos')
+		// pos.add(cam_.position, 'x', -1, 1).listen()
+		// pos.add(cam_.position, 'y', -1, 1).listen()
+		// pos.add(cam_.position, 'z', -1, 1).listen()
+		// pos.open()
+		// var rot = cam.addFolder('Rot')
+		// rot.add(cam_.rotation, 'x', -1, 1).listen()
+		// rot.add(cam_.rotation, 'y', -1, 1).listen()
+		// rot.add(cam_.rotation, 'z', -1, 1).listen()
+		// rot.open()
+		// cam.open()
 
 		var cam2 = gui.addFolder('Cam (2)')
-		cam2.add(options, 'update')
-		var pos2 = cam2.addFolder('Pos')
-		pos2.add(cam2_.camera.position, 'x', -2, 2).step(0.2).listen()
-		pos2.add(cam2_.camera.position, 'y', -2, 2).step(0.2).listen()
-		pos2.add(cam2_.camera.position, 'z', -2, 2).step(0.2).listen()
+		let controllers = []
+		var pos2 = cam2.addFolder('Position')
+		controllers.push(pos2.add(cam2_.camera.position, 'x', -2, 2).step(0.1).listen())
+		controllers.push(pos2.add(cam2_.camera.position, 'y', -2, 2).step(0.1).listen())
+		controllers.push(pos2.add(cam2_.camera.position, 'z', -2, 2).step(0.1).listen())
 		pos2.open()
-		var rot2 = cam2.addFolder('Rot')
-		rot2.add(cam2_.camera.rotation, 'x', -2, 2).step(0.2).listen()
-		rot2.add(cam2_.camera.rotation, 'y', -2, 2).step(0.2).listen()
-		rot2.add(cam2_.camera.rotation, 'z', -2, 2).step(0.2).listen()
+		var rot2 = cam2.addFolder('Rotation')
+		controllers.push(rot2.add(cam2_.camera.rotation, 'x', -2, 2).step(0.1).listen())
+		controllers.push(rot2.add(cam2_.camera.rotation, 'y', -2, 2).step(0.1).listen())
+		controllers.push(rot2.add(cam2_.camera.rotation, 'z', -2, 2).step(0.1).listen())
 		rot2.open()
 		cam2.open()
 
-		this.gui_models = gui.addFolder("Models")
-		this.gui_models.add(this.axisHelper, "visible").name("axes")
+		controllers.forEach(function (ctrl) {
+			ctrl.onChange(function (value) {
+				cam2_.camera.updateMatrixWorld(true)
+			})
+		})
+
+
+		this.gui_models = gui.addFolder('Visbility')
+		this.gui_models.add(this.axisHelper, 'visible').name('x-y-z axes')
 		this.gui_models.open()
+		this.gui_surfels = gui.addFolder('Surfels (DEPENDENT ON CAM 2)')
+		this.gui_surfels.open()
+	}
+
+	addSurfels() {
+		this.mesh.visible = true;
+		for (let x = -1; x < 1; x += (2 / SURF_RES)) {
+			for (let y = -1; y < 1; y += (2 / SURF_RES)) {
+				this.ray.setFromCamera(new Vector2(x, y), this.camera2)
+				var intersects = this.ray.intersectObject(this.mesh)
+				if (intersects.length > 0) {
+					var intersect = intersects[0]
+					var geometry = new THREE.PlaneGeometry(.1, .1)
+					geometry.lookAt(intersect.face.normal)
+					let scaling = 0.5*intersect.distance + 0.5*Math.pow(intersect.distance, 2) + 0.1
+					geometry.scale(scaling, scaling, scaling)
+					var material = new THREE.MeshBasicMaterial({color: 0xff00ff, side: THREE.DoubleSide})
+					var plane = new THREE.Mesh(geometry, material)
+					geometry.translate(intersect.point.x, intersect.point.y, intersect.point.z)
+					this.scene.add(plane)
+					this.surfels.push(plane)
+				}
+			}
+		}
+	}
+
+	clearSurfels() {
+		let self = this
+		this.surfels.forEach(function (surfel) {
+			self.scene.remove(surfel)
+		})
 	}
 
 	loadModel() {
 		var loader = new THREE.GLTFLoader()
 		let scene_ = this.scene
-		let self = this;
+		let self = this
 		loader.load('assets/bunn.glb', function (gltf) {
-			var mesh = gltf.scene.children[0]
-			mesh.geometry.center()
-			mesh.scale.set(10, 10, 10)
-			mesh.material = new MeshBasicMaterial({color: new THREE.Color(0x0000ff), transparent: true, opacity: 0.5})
-			scene_.add(mesh)
+			self.mesh = gltf.scene.children[0]
+			self.mesh.geometry.center()
+			self.mesh.scale.set(10, 10, 10)
+			self.mesh.material = new MeshBasicMaterial({color: new THREE.Color(0x0000ff), transparent: true, opacity: 0.5})
+			scene_.add(self.mesh)
+			self.mesh.visible = Config.visibility.base
+			self.gui_models.add(self.mesh, 'visible').name('ground truth').listen()
+			self.gui_surfels.add(self, 'addSurfels').name("add surfels")
+			self.gui_surfels.add(self, 'clearSurfels').name("clear all surfels")
 
 			var modifier = new THREE.SimplifyModifier()
-			var simplified = mesh.clone()
+			var simplified = self.mesh.clone()
 			simplified.geometry.center()
 			simplified.scale.set(10, 10, 10)
 			// simplified.position.x = 3
@@ -221,7 +241,7 @@ export default class Main {
 			self.bunn_mesh = simplified
 			scene_.add(self.bunn_mesh)
 			self.bunn_mesh.visible = Config.visibility.mesh
-			self.gui_models.add(self.bunn_mesh, "visible").name("mesh")
+			self.gui_models.add(self.bunn_mesh, 'visible').name('mesh')
 
 		}, undefined, function (error) {
 			console.error(error)
@@ -232,14 +252,14 @@ export default class Main {
 
 			mesh.geometry.center()
 			mesh.scale.set(.029, .029, .029)
-			mesh.rotateX(Math.PI*3/2)
+			mesh.rotateX(Math.PI * 3 / 2)
 			// mesh.position.x = 2
 			mesh.material = new MeshLambertMaterial({transparent: true, opacity: 0.5, color: new THREE.Color(0x00ff00)})
 
 			self.bunn_voxel = mesh
 			scene_.add(self.bunn_voxel)
 			self.bunn_voxel.visible = Config.visibility.voxel
-			self.gui_models.add(self.bunn_voxel, "visible").name("voxel")
+			self.gui_models.add(self.bunn_voxel, 'visible').name('voxel')
 
 		}, undefined, function (error) {
 			console.error(error)
