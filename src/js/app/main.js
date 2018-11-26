@@ -167,7 +167,7 @@ export default class Main {
 		var rot2 = cam2.addFolder('Rotation')
 		controllers.push(rot2.add(cam2_.camera.rotation, 'x', -2, 2).step(0.1).listen())
 		controllers.push(rot2.add(cam2_.camera.rotation, 'y', -2, 2).step(0.1).listen())
-		controllers.push(rot2.add(cam2_.camera.rotation, 'z', -2, 2).step(0.1).listen())
+		// controllers.push(rot2.add(cam2_.camera.rotation, 'z', -2, 2).step(0.1).listen())
 		rot2.open()
 		cam2.open()
 
