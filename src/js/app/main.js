@@ -49,7 +49,6 @@ export default class Main {
 		document.body.appendChild(this.renderer.domElement)
 
 		this.addLights()
-		this.addHelpers()
 
 		window.addEventListener('resize', () => {
 			let width = window.innerWidth
@@ -62,8 +61,9 @@ export default class Main {
 		})
 
 		this.addStats()
-		this.loadModel()
 		this.addGUI()
+		this.loadModel()
+		this.addHelpers()
 		// let's render
 		this.render()
 	}
@@ -96,6 +96,7 @@ export default class Main {
 			this.axisHelper = new THREE.AxesHelper(50)
 			this.scene.add(this.axisHelper)
 			this.axisHelper.visible = Config.visibility.axes
+			this.gui_models.add(this.axisHelper, 'visible').name('x-y-z axes')
 		}
 	}
 
@@ -137,6 +138,7 @@ export default class Main {
 			center: this.camCenter(cam_),
 			// update: this.updateCam(cam2_)
 		}
+		let self = this;
 
 		var gui = new dat.GUI()
 
@@ -172,12 +174,13 @@ export default class Main {
 		controllers.forEach(function (ctrl) {
 			ctrl.onChange(function (value) {
 				cam2_.camera.updateMatrixWorld(true)
+				self.clearSurfels()
+				self.addSurfels()
 			})
 		})
 
 
 		this.gui_models = gui.addFolder('Visbility')
-		this.gui_models.add(this.axisHelper, 'visible').name('x-y-z axes')
 		this.gui_models.open()
 		this.gui_surfels = gui.addFolder('Surfels (DEPENDENT ON CAM 2)')
 		this.gui_surfels.open()
